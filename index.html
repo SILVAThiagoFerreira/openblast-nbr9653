@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenBlast | NBR 9653</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">OpenBlast</p>
+      <h1>Gráficos ABNT NBR 9653:2018 para sismogramas</h1>
+      <p class="subtitle">
+        Suba múltiplos arquivos CSV de sismogramas. O processamento acontece no navegador, sem enviar dados para servidor.
+      </p>
+    </div>
+    <img src="assets/logo-openblast.png" alt="Logo OpenBlast" class="brand-logo" />
+  </header>
+
+  <main class="container">
+    <section class="panel upload-panel">
+      <div id="dropzone" class="dropzone">
+        <input id="fileInput" type="file" accept=".csv,text/csv" multiple />
+        <div class="dropzone-copy">
+          <strong>Arraste os CSVs aqui</strong>
+          <span>ou clique para selecionar quantos sismogramas quiser</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="loadSampleBtn" type="button">Carregar exemplo mínimo</button>
+        <button id="clearBtn" type="button" class="secondary">Limpar</button>
+      </div>
+
+      <div class="settings-grid">
+        <label>
+          Título do relatório
+          <input id="reportTitle" value="Eventos Sismográficos" />
+        </label>
+
+        <label>
+          Distância máxima pressão sonora (m)
+          <input id="pressureMaxDistance" type="number" min="100" step="100" value="6000" />
+        </label>
+
+        <label>
+          Limite pressão sonora (dB)
+          <input id="pressureLimit" type="number" min="0" step="1" value="134" />
+        </label>
+
+        <label>
+          Limite máximo PPV (mm/s)
+          <input id="vibrationMaxY" type="number" min="10" step="5" value="60" />
+        </label>
+      </div>
+    </section>
+
+    <section id="statusPanel" class="status-panel" hidden></section>
+
+    <section class="kpi-grid" id="kpiGrid" hidden>
+      <article class="kpi">
+        <span>Arquivos lidos</span>
+        <strong id="kpiFiles">0</strong>
+      </article>
+      <article class="kpi">
+        <span>Maior PPV</span>
+        <strong id="kpiPPV">0,000 mm/s</strong>
+      </article>
+      <article class="kpi">
+        <span>Maior PSPL</span>
+        <strong id="kpiPSPL">0,0 dB</strong>
+      </article>
+      <article class="kpi">
+        <span>Status geral</span>
+        <strong id="kpiStatus">-</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">NBR 9653</p>
+          <h2>Pressão sonora</h2>
+        </div>
+        <div class="chart-actions">
+          <button type="button" data-download-svg="pressureChart">SVG</button>
+          <button type="button" data-download-png="pressureChart">PNG</button>
+        </div>
+      </div>
+      <div id="pressureChart" class="chart-shell empty-state">
+        Suba os arquivos CSV para gerar o gráfico de pressão sonora.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">NBR 9653</p>
+          <h2>Vibração em eventos sismográficos</h2>
+        </div>
+        <div class="chart-actions">
+          <button type="button" data-download-svg="vibrationNormChart">SVG</button>
+          <button type="button" data-download-png="vibrationNormChart">PNG</button>
+        </div>
+      </div>
+      <div id="vibrationNormChart" class="chart-shell empty-state">
+        Suba os arquivos CSV para gerar o gráfico normativo.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Personalizado</p>
+          <h2>Vibração com eixos lineares partindo de zero</h2>
+        </div>
+        <div class="chart-actions">
+          <button type="button" data-download-svg="vibrationZeroChart">SVG</button>
+          <button type="button" data-download-png="vibrationZeroChart">PNG</button>
+        </div>
+      </div>
+      <div id="vibrationZeroChart" class="chart-shell empty-state">
+        Suba os arquivos CSV para gerar o gráfico personalizado.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Dados consolidados</p>
+          <h2>Resumo dos sismogramas</h2>
+        </div>
+        <div class="chart-actions">
+          <button id="exportSummaryBtn" type="button">Exportar CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th>Arquivo</th>
+              <th>Ponto</th>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Distância (m)</th>
+              <th>Serial</th>
+              <th>Tran PPV / Hz</th>
+              <th>Vert PPV / Hz</th>
+              <th>Long PPV / Hz</th>
+              <th>PSPL (dB)</th>
+              <th>PVS (mm/s)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="12" class="muted-row">Nenhum CSV carregado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>OpenBlast</span>
+    <span>ABNT NBR 9653:2018</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
