@@ -444,8 +444,24 @@ function drawPressureChart(events) {
     const x = sx(event.distance);
     const y = sy(event.pspl);
     svg.appendChild(circle(x, y, 6, COLORS.red));
-    addText(svg, x, y - 12, formatNumber(event.pspl, 1), { anchor: "middle", size: 13, boxed: true });
   }
+
+  drawCollisionAwareLabels(
+    svg,
+    events
+      .filter((event) => isFiniteNumber(event.distance) && isFiniteNumber(event.pspl))
+      .map((event) => ({
+        x: sx(event.distance),
+        y: sy(event.pspl),
+        text: formatNumber(event.pspl, 1),
+        size: 13,
+        fill: COLORS.ink,
+        weight: 600,
+        type: "pressure"
+      })),
+    plot,
+    "pressure"
+  );
 
   addLegend(svg, plot.right + 30, plot.top + 180, [
     { type: "line", label: `Limite de ${limit} dB`, color: COLORS.axis },
@@ -472,7 +488,7 @@ function drawVibrationNormChart(events) {
   });
 
   addNormGuides(svg, sx, sy, plot, xMax);
-  addVibrationPoints(svg, events, sx, sy);
+  addVibrationPoints(svg, events, sx, sy, plot);
 
   addLegend(svg, plot.right + 28, plot.top + 200, [
     { type: "square", label: "Transversal (mm/s)", color: COLORS.red },
@@ -502,7 +518,7 @@ function drawVibrationZeroChart(events) {
   });
 
   addNormGuides(svg, sx, sy, plot, xMax);
-  addVibrationPoints(svg, events, sx, sy);
+  addVibrationPoints(svg, events, sx, sy, plot);
 
   addLegend(svg, plot.right + 28, plot.top + 200, [
     { type: "square", label: "Transversal (mm/s)", color: COLORS.red },
@@ -620,17 +636,38 @@ function addNormGuides(svg, sx, sy, plot, xMax) {
   }
 }
 
-function addVibrationPoints(svg, events, sx, sy) {
+function addVibrationPoints(svg, events, sx, sy, plot) {
   const jitter = { Tran: -4, Long: 0, Vert: 4 };
+  const labels = [];
 
   for (const event of events) {
+    const visibleComponents = (event.components || []).filter((component) => isFiniteNumber(component.ppv) && isFiniteNumber(component.freq));
+    const primaryComponent = visibleComponents.reduce((best, component) => {
+      if (!best) return component;
+      return component.ppv > best.ppv ? component : best;
+    }, null);
+
     for (const component of event.components || []) {
       const x = sx(component.freq);
       const y = sy(component.ppv) + (jitter[component.axis] || 0);
       addMarker(svg, x, y, component.shape, component.color, 7);
-      addText(svg, x + 8, y - 8, formatNumber(component.ppv, 2), { anchor: "start", size: 11, boxed: true });
+      if (primaryComponent && component.axis === primaryComponent.axis) {
+        labels.push({
+          x,
+          y,
+          text: formatNumber(component.ppv, 2),
+          size: 11,
+          fill: COLORS.ink,
+          weight: 600,
+          type: "vibration",
+          axis: component.axis,
+          color: component.color
+        });
+      }
     }
   }
+
+  drawCalloutLabels(svg, labels, plot);
 }
 
 function sxLog(xMin, xMax, plot) {
@@ -787,6 +824,7 @@ function addText(svg, x, y, text, options = {}) {
   el.setAttribute("font-weight", options.weight || 500);
   el.textContent = text;
   svg.appendChild(el);
+  return el;
 }
 
 function addRotatedText(svg, x, y, text) {
@@ -815,6 +853,282 @@ function addLegend(svg, x, y, items) {
 
     addText(svg, x + 44, yPos + 5, item.label, { size: 13, fill: COLORS.muted, weight: 520 });
   });
+}
+
+function drawCollisionAwareLabels(svg, labels, plot, chartType) {
+  const occupied = [];
+  const sorted = [...labels].sort((a, b) => a.x - b.x || a.y - b.y || String(a.text).localeCompare(String(b.text)));
+
+  for (const label of sorted) {
+    const placement = placeLabel(label, plot, occupied, chartType);
+    if (!placement) continue;
+
+    renderLabel(svg, label, placement);
+    occupied.push(inflateBox(placement.box, 4));
+  }
+}
+
+function drawCalloutLabels(svg, labels, plot) {
+  const sorted = [...labels].sort((a, b) => a.x - b.x || a.y - b.y || String(a.text).localeCompare(String(b.text)));
+  if (!sorted.length) return;
+
+  const rowSpacing = 20;
+  const columnSpacing = 104;
+  const maxRows = Math.max(1, Math.floor((plot.bottom - plot.top - 24) / rowSpacing));
+
+  sorted.forEach((label, index) => {
+    const column = Math.floor(index / maxRows);
+    const row = index % maxRows;
+    const metrics = estimateLabelMetrics(label.text, label.size || 11);
+    const left = plot.right + 12 + column * columnSpacing;
+    const top = plot.top + 14 + row * rowSpacing;
+    const placement = {
+      box: {
+        left,
+        top,
+        right: left + metrics.width,
+        bottom: top + metrics.height
+      },
+      anchor: "start",
+      leader: true
+    };
+
+    renderLabel(svg, label, placement);
+  });
+}
+
+function placeLabel(label, plot, occupied, chartType) {
+  const metrics = estimateLabelMetrics(label.text, label.size || 11);
+  const candidates = buildLabelCandidates(label, metrics, plot, chartType);
+  let bestInside = null;
+  let bestOutside = null;
+
+  for (const candidate of candidates) {
+    const score = labelPlacementScore(candidate.box, plot, occupied);
+    const inside = isBoxWithinPlot(candidate.box, plot, 4);
+    if (score === 0) {
+      return candidate;
+    }
+
+    if (inside) {
+      if (!bestInside || score < bestInside.score) {
+        bestInside = { ...candidate, score };
+      }
+    } else if (!bestOutside || score < bestOutside.score) {
+      bestOutside = { ...candidate, score };
+    }
+  }
+
+  return bestInside || bestOutside;
+}
+
+function renderLabel(svg, label, placement) {
+  const metrics = estimateLabelMetrics(label.text, label.size || 11);
+  const textX = placement.box.left + (placement.anchor === "middle" ? metrics.width / 2 : placement.anchor === "end" ? metrics.width : 0);
+  const textY = placement.box.top + metrics.height - 4;
+  const textEl = addText(svg, textX, textY, label.text, {
+    anchor: placement.anchor,
+    size: label.size || 11,
+    fill: label.fill || COLORS.ink,
+    weight: label.weight || 600,
+    boxed: true
+  });
+
+  if (textEl) {
+    textEl.dataset.labelBoxLeft = String(roundLabelValue(placement.box.left));
+    textEl.dataset.labelBoxTop = String(roundLabelValue(placement.box.top));
+    textEl.dataset.labelBoxRight = String(roundLabelValue(placement.box.right));
+    textEl.dataset.labelBoxBottom = String(roundLabelValue(placement.box.bottom));
+    textEl.dataset.labelType = label.type || "";
+    if (label.axis) textEl.dataset.labelAxis = label.axis;
+  }
+
+  if (placement.leader) {
+    const target = leaderTargetPoint(label.x, label.y, placement.box);
+    svg.appendChild(line(label.x, label.y, target.x, target.y, { stroke: "#aeb4bd", width: 0.9 }));
+  }
+}
+
+function buildLabelCandidates(label, metrics, plot, chartType) {
+  const gap = chartType === "pressure" ? 7 : 6;
+  const midpoint = (plot.left + plot.right) / 2;
+  const preferRight = label.x <= midpoint;
+  const primarySide = chartType === "pressure"
+    ? preferRight
+      ? "right"
+      : "left"
+    : label.axis === "Tran"
+      ? (preferRight ? "right" : "left")
+      : label.axis === "Vert"
+        ? (preferRight ? "right" : "left")
+        : preferRight
+          ? "right"
+          : "left";
+
+  const oppositeSide = primarySide === "right" ? "left" : "right";
+
+  const patterns = chartType === "pressure"
+    ? [
+        { side: primarySide, vertical: "above" },
+        { side: primarySide, vertical: "below" },
+        { side: "center", vertical: "above" },
+        { side: "center", vertical: "below" },
+        { side: oppositeSide, vertical: "above" },
+        { side: oppositeSide, vertical: "below" }
+      ]
+    : label.axis === "Tran"
+      ? [
+          { side: "left", vertical: "above" },
+          { side: "right", vertical: "above" },
+          { side: "left", vertical: "below" },
+          { side: "right", vertical: "below" },
+          { side: "center", vertical: "above" },
+          { side: "center", vertical: "below" }
+        ]
+      : label.axis === "Vert"
+        ? [
+            { side: "right", vertical: "above" },
+            { side: "left", vertical: "above" },
+            { side: "right", vertical: "below" },
+            { side: "left", vertical: "below" },
+            { side: "center", vertical: "above" },
+            { side: "center", vertical: "below" }
+          ]
+        : [
+            { side: "left", vertical: "below" },
+            { side: "right", vertical: "below" },
+            { side: "left", vertical: "above" },
+            { side: "right", vertical: "above" },
+            { side: "center", vertical: "above" },
+            { side: "center", vertical: "below" }
+          ];
+
+  const laneOffsetsByVertical = {
+    above: [0, -12, -24, -36],
+    below: [0, 12, 24, 36],
+    center: [0, -12, 12, -24, 24]
+  };
+  const candidates = [];
+
+  for (const pattern of patterns) {
+    const laneOffsets = laneOffsetsByVertical[pattern.vertical] || [0];
+
+    for (const laneOffset of laneOffsets) {
+      const box = buildLabelBox(label.x, label.y, metrics, pattern.side, pattern.vertical, gap, laneOffset);
+      candidates.push({
+        box,
+        anchor: box.anchor,
+        leader: Math.abs(box.left - label.x) > 4 || Math.abs(box.top - label.y) > 4
+      });
+    }
+  }
+
+  return candidates;
+}
+
+function buildLabelBox(pointX, pointY, metrics, side, vertical, gap, laneOffset) {
+  const width = metrics.width;
+  const height = metrics.height;
+  let left = pointX;
+  let top = pointY;
+  let anchor = "start";
+
+  if (side === "center") {
+    left = pointX - width / 2;
+    anchor = "middle";
+  } else if (side === "right") {
+    left = pointX + gap;
+    anchor = "start";
+  } else if (side === "left") {
+    left = pointX - width - gap;
+    anchor = "end";
+  }
+
+  if (vertical === "above") {
+    top = pointY - height - gap + laneOffset;
+  } else if (vertical === "below") {
+    top = pointY + gap + laneOffset;
+  } else {
+    top = pointY - height / 2 + laneOffset;
+  }
+
+  const box = {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height
+  };
+  box.anchor = anchor;
+  return box;
+}
+
+function estimateLabelMetrics(text, size = 11) {
+  const paddingX = 5;
+  const paddingY = 3;
+  const width = String(text).length * size * 0.58 + paddingX * 2;
+  const height = size + paddingY * 2;
+  return { width, height };
+}
+
+function labelPlacementScore(box, plot, occupied) {
+  const overlap = totalOverlapArea(box, occupied);
+  const horizontalOverflow = Math.max(0, plot.left + 4 - box.left) + Math.max(0, box.right - (plot.right - 4));
+  const verticalOverflow = Math.max(0, plot.top + 4 - box.top) + Math.max(0, box.bottom - (plot.bottom - 4));
+  return overlap * 1000 + horizontalOverflow * boxHeight(box) * 25 + verticalOverflow * boxWidth(box) * 25;
+}
+
+function boxWidth(box) {
+  return box.right - box.left;
+}
+
+function boxHeight(box) {
+  return box.bottom - box.top;
+}
+
+function totalOverlapArea(box, occupied) {
+  let total = 0;
+  for (const other of occupied) {
+    total += overlapArea(box, other);
+  }
+  return total;
+}
+
+function overlapArea(a, b) {
+  const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+  const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  return width * height;
+}
+
+function inflateBox(box, padding) {
+  return {
+    left: box.left - padding,
+    top: box.top - padding,
+    right: box.right + padding,
+    bottom: box.bottom + padding
+  };
+}
+
+function leaderTargetPoint(pointX, pointY, box) {
+  const candidates = [
+    { x: box.left, y: clamp(pointY, box.top, box.bottom), distance: Math.abs(pointX - box.left) },
+    { x: box.right, y: clamp(pointY, box.top, box.bottom), distance: Math.abs(pointX - box.right) },
+    { x: clamp(pointX, box.left, box.right), y: box.top, distance: Math.abs(pointY - box.top) },
+    { x: clamp(pointX, box.left, box.right), y: box.bottom, distance: Math.abs(pointY - box.bottom) }
+  ];
+
+  return candidates.reduce((best, candidate) => (candidate.distance < best.distance ? candidate : best), candidates[0]);
+}
+
+function isBoxWithinPlot(box, plot, padding = 4) {
+  return box.left >= plot.left + padding && box.right <= plot.right - padding && box.top >= plot.top + padding && box.bottom <= plot.bottom - padding;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function roundLabelValue(value) {
+  return Number(value.toFixed(2));
 }
 
 function downloadSvg(containerId, fileName) {
