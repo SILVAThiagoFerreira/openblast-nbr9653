@@ -667,7 +667,7 @@ function addVibrationPoints(svg, events, sx, sy, plot) {
     }
   }
 
-  drawCalloutLabels(svg, labels, plot);
+  drawCompactLabels(svg, labels, plot);
 }
 
 function sxLog(xMin, xMax, plot) {
@@ -868,33 +868,68 @@ function drawCollisionAwareLabels(svg, labels, plot, chartType) {
   }
 }
 
-function drawCalloutLabels(svg, labels, plot) {
+function drawCompactLabels(svg, labels, plot) {
   const sorted = [...labels].sort((a, b) => a.x - b.x || a.y - b.y || String(a.text).localeCompare(String(b.text)));
   if (!sorted.length) return;
 
-  const rowSpacing = 20;
-  const columnSpacing = 104;
-  const maxRows = Math.max(1, Math.floor((plot.bottom - plot.top - 24) / rowSpacing));
+  const occupied = [];
 
-  sorted.forEach((label, index) => {
-    const column = Math.floor(index / maxRows);
-    const row = index % maxRows;
-    const metrics = estimateLabelMetrics(label.text, label.size || 11);
-    const left = plot.right + 12 + column * columnSpacing;
-    const top = plot.top + 14 + row * rowSpacing;
-    const placement = {
-      box: {
-        left,
-        top,
-        right: left + metrics.width,
-        bottom: top + metrics.height
-      },
-      anchor: "start",
-      leader: true
-    };
+  for (const label of sorted) {
+    const placement = placeCompactLabel(label, plot, occupied);
+    if (!placement) continue;
 
+    placement.leader = false;
     renderLabel(svg, label, placement);
-  });
+    occupied.push(inflateBox(placement.box, 3));
+  }
+}
+
+function placeCompactLabel(label, plot, occupied) {
+  const metrics = estimateLabelMetrics(label.text, label.size || 11);
+  const candidates = buildCompactLabelCandidates(label, metrics, plot);
+
+  for (const candidate of candidates) {
+    const score = labelPlacementScore(candidate.box, plot, occupied);
+    if (score === 0) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function buildCompactLabelCandidates(label, metrics, plot) {
+  const gap = 6;
+  const midpointX = (plot.left + plot.right) / 2;
+  const midpointY = (plot.top + plot.bottom) / 2;
+  const preferRight = label.x <= midpointX;
+  const preferAbove = label.y >= midpointY;
+  const primarySide = preferRight ? "right" : "left";
+  const secondarySide = primarySide === "right" ? "left" : "right";
+  const primaryVertical = preferAbove ? "above" : "below";
+  const secondaryVertical = primaryVertical === "above" ? "below" : "above";
+  const laneOffsets = [0, -10, 10, -20, 20];
+  const patterns = [
+    { side: primarySide, vertical: primaryVertical },
+    { side: primarySide, vertical: secondaryVertical },
+    { side: secondarySide, vertical: primaryVertical },
+    { side: "center", vertical: primaryVertical },
+    { side: "center", vertical: secondaryVertical }
+  ];
+  const candidates = [];
+
+  for (const pattern of patterns) {
+    for (const laneOffset of laneOffsets) {
+      const box = buildLabelBox(label.x, label.y, metrics, pattern.side, pattern.vertical, gap, laneOffset);
+      candidates.push({
+        box,
+        anchor: box.anchor,
+        leader: false
+      });
+    }
+  }
+
+  return candidates;
 }
 
 function placeLabel(label, plot, occupied, chartType) {
