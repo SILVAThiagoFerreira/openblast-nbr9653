@@ -4,18 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OpenBlast | NBR 9653</title>
+  <meta name="description" content="Relatório executivo de sismogramas com gráficos ABNT NBR 9653:2018 e exportação em PDF." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">OpenBlast</p>
-      <h1>Gráficos ABNT NBR 9653:2018 para sismogramas</h1>
+  <header class="masthead">
+    <div class="masthead-copy">
+      <p class="eyebrow">OpenBlast / ABNT NBR 9653:2018</p>
+      <h1>Relatório executivo de sismogramas</h1>
       <p class="subtitle">
-        Suba múltiplos arquivos CSV de sismogramas. O processamento acontece no navegador, sem enviar dados para servidor.
+        Processamento local no navegador, com layout limpo, gráficos objetivos e exportação direta para PDF.
       </p>
     </div>
-    <img src="assets/logo-openblast.png" alt="Logo OpenBlast" class="brand-logo" />
+
+    <div class="masthead-side">
+      <img src="assets/logo-openblast.png" alt="Logo OpenBlast" class="brand-logo" />
+      <div class="masthead-actions">
+        <button id="exportPdfBtn" type="button" class="primary">Relatório PDF</button>
+        <button id="loadSampleBtn" type="button">Exemplo</button>
+        <button id="clearBtn" type="button" class="secondary">Limpar</button>
+      </div>
+    </div>
   </header>
 
   <main class="container">
@@ -26,11 +35,6 @@
           <strong>Arraste os CSVs aqui</strong>
           <span>ou clique para selecionar quantos sismogramas quiser</span>
         </div>
-      </div>
-
-      <div class="actions">
-        <button id="loadSampleBtn" type="button">Carregar exemplo mínimo</button>
-        <button id="clearBtn" type="button" class="secondary">Limpar</button>
       </div>
 
       <div class="settings-grid">
@@ -77,7 +81,7 @@
       </article>
     </section>
 
-    <section class="panel">
+    <section class="panel chart-panel">
       <div class="section-heading">
         <div>
           <p class="eyebrow">NBR 9653</p>
@@ -93,7 +97,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel chart-panel">
       <div class="section-heading">
         <div>
           <p class="eyebrow">NBR 9653</p>
@@ -109,7 +113,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel chart-panel">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Personalizado</p>

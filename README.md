@@ -8,12 +8,24 @@ Projeto estático para ler múltiplos CSVs de sismogramas no navegador e gerar:
 4. Tabela consolidada dos eventos
 5. Exportação dos gráficos em SVG/PNG
 6. Exportação do resumo em CSV
+7. Relatório executivo em PDF com fundo branco, logo pequeno e layout enxuto
 
 ## Como usar localmente
 
 Abra `index.html` no navegador e suba os arquivos `.csv`.
 
 O processamento é local. Os arquivos não são enviados para servidor.
+
+## Relatório executivo em PDF
+
+Use o botão `Relatório PDF` para abrir uma janela de impressão com o layout simplificado:
+
+- fundo branco
+- logo pequeno no canto superior
+- resumo executivo com poucos indicadores
+- gráficos prontos para salvar como PDF
+
+Na janela aberta, use a opção do navegador para salvar como PDF.
 
 ## Como publicar no GitHub Pages
 

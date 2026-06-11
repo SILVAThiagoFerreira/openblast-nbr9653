@@ -3,14 +3,14 @@ const state = {
 };
 
 const COLORS = {
-  ink: "#252932",
-  muted: "#6f747c",
-  grid: "#d7d9dd",
-  axis: "#252932",
-  red: "#e30613",
-  orange: "#ff6b00",
-  blue: "#1f4aff",
-  green: "#159447"
+  ink: "#20242b",
+  muted: "#6b7280",
+  grid: "#e3e6ea",
+  axis: "#20242b",
+  red: "#c8102e",
+  orange: "#c26a00",
+  blue: "#1f4ab8",
+  green: "#0d7a4f"
 };
 
 const COMPONENTS = [
@@ -85,6 +85,7 @@ $("#clearBtn").addEventListener("click", () => {
   renderAll();
 });
 
+$("#exportPdfBtn").addEventListener("click", exportExecutiveReportPdf);
 $("#exportSummaryBtn").addEventListener("click", exportSummaryCsv);
 
 ["reportTitle", "pressureMaxDistance", "pressureLimit", "vibrationMaxY"].forEach((id) => {
@@ -906,6 +907,355 @@ function exportSummaryCsv() {
 
   const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
   downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), "resumo-openblast-nbr9653.csv");
+}
+
+async function exportExecutiveReportPdf() {
+  if (!state.events.length) {
+    setStatus("Carregue ao menos um CSV para exportar o relatório em PDF.", true);
+    return;
+  }
+
+  const reportWindow = window.open("", "_blank", "width=1280,height=900");
+  if (!reportWindow) {
+    setStatus("O navegador bloqueou a abertura da janela de relatório PDF.", true);
+    return;
+  }
+
+  reportWindow.document.open();
+  reportWindow.document.write("<!doctype html><title>Preparando relatório PDF</title><p style='font-family:Arial,Helvetica,sans-serif;padding:24px;color:#333'>Preparando relatório PDF...</p>");
+  reportWindow.document.close();
+  reportWindow.focus();
+
+  try {
+    const logoUrl = new URL("assets/logo-openblast.png", location.href).href;
+    let logoDataUrl = logoUrl;
+
+    try {
+      logoDataUrl = await loadImageDataUrl(logoUrl);
+    } catch {
+      logoDataUrl = logoUrl;
+    }
+
+    const html = buildExecutiveReportHtml({ logoDataUrl });
+    reportWindow.document.open();
+    reportWindow.document.write(html);
+    reportWindow.document.close();
+    reportWindow.focus();
+    setStatus("Relatório PDF pronto. Use a janela aberta para salvar como PDF.");
+  } catch (error) {
+    reportWindow.close();
+    setStatus(`Não foi possível preparar o relatório PDF: ${escapeHtml(error.message)}`, true);
+  }
+}
+
+function buildExecutiveReportHtml({ logoDataUrl }) {
+  const title = $("#reportTitle").value || "Eventos Sismográficos";
+  const generatedAt = new Date().toLocaleString("pt-BR", {
+    dateStyle: "long",
+    timeStyle: "short"
+  });
+
+  const components = state.events.flatMap((event) => event.components || []);
+  const maxPpv = Math.max(...components.map((component) => component.ppv).filter(isFiniteNumber), 0);
+  const maxPspl = Math.max(...state.events.map((event) => event.pspl).filter(isFiniteNumber), 0);
+  const hasAlert = state.events.some((event) => event.overallStatus.severity === "alert");
+  const hasCheck = state.events.some((event) => event.overallStatus.severity === "check");
+  const overallStatus = hasAlert ? "Acima do limite" : hasCheck ? "Verificar" : "Conforme";
+
+  const pressureChart = getChartMarkup("pressureChart");
+  const vibrationNormChart = getChartMarkup("vibrationNormChart");
+  const vibrationZeroChart = getChartMarkup("vibrationZeroChart");
+
+  const reportTitle = escapeHtml(title);
+  const reportNote = `Gerado em ${escapeHtml(generatedAt)} · Processamento local no navegador`;
+
+  const kpis = [
+    { label: "Arquivos", value: String(state.events.length) },
+    { label: "Maior PPV", value: `${formatNumber(maxPpv, 3)} mm/s` },
+    { label: "Maior PSPL", value: `${formatNumber(maxPspl, 1)} dB` },
+    { label: "Status", value: overallStatus }
+  ];
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relatório PDF - ${reportTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #111827;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    .sheet {
+      position: relative;
+    }
+
+    .report-logo {
+      position: fixed;
+      top: 12mm;
+      right: 12mm;
+      width: 14mm;
+      height: 14mm;
+      object-fit: contain;
+      z-index: 2;
+    }
+
+    .header {
+      padding: 0 0 7mm;
+      margin-bottom: 6mm;
+      border-bottom: 1px solid #d9dde3;
+    }
+
+    .eyebrow {
+      margin: 0 0 3mm;
+      color: #c8102e;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 20pt;
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+      max-width: 150mm;
+    }
+
+    .subtitle {
+      margin-top: 2.5mm;
+      max-width: 152mm;
+      color: #6b7280;
+      font-size: 9.5pt;
+      line-height: 1.45;
+    }
+
+    .meta-line {
+      margin-top: 2.5mm;
+      color: #6b7280;
+      font-size: 8pt;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4mm;
+      margin-bottom: 6mm;
+    }
+
+    .summary-card {
+      border: 1px solid #d9dde3;
+      border-radius: 2.5mm;
+      padding: 4mm 4.5mm;
+      min-height: 22mm;
+    }
+
+    .summary-card span {
+      display: block;
+      color: #6b7280;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .summary-card strong {
+      display: block;
+      margin-top: 2.2mm;
+      font-size: 16pt;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+    }
+
+    .chart-block {
+      border: 1px solid #d9dde3;
+      border-radius: 2.5mm;
+      padding: 4mm;
+      margin-bottom: 6mm;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      background: #fff;
+    }
+
+    .chart-break {
+      break-before: page;
+      page-break-before: always;
+    }
+
+    .chart-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 4mm;
+      margin-bottom: 3mm;
+    }
+
+    .chart-heading h2 {
+      font-size: 11pt;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .chart-heading span {
+      color: #6b7280;
+      font-size: 8pt;
+      white-space: nowrap;
+    }
+
+    .chart-shell {
+      border: 0;
+      border-radius: 0;
+      overflow: visible;
+    }
+
+    .chart-shell svg {
+      min-width: 0;
+      width: 100%;
+      height: auto;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 8mm;
+      margin-top: 6mm;
+      padding-top: 3mm;
+      border-top: 1px solid #d9dde3;
+      color: #6b7280;
+      font-size: 7.5pt;
+    }
+
+    @media screen {
+      body {
+        background: #efefef;
+        padding: 8mm 0;
+      }
+
+      .sheet {
+        width: 190mm;
+        margin: 0 auto;
+        background: #fff;
+        padding: 12mm;
+        box-shadow: 0 16px 50px rgba(0, 0, 0, 0.08);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <img class="report-logo" src="${escapeAttr(logoDataUrl)}" alt="Logo OpenBlast" />
+
+    <header class="header">
+      <p class="eyebrow">OpenBlast / ABNT NBR 9653:2018</p>
+      <h1>${reportTitle}</h1>
+      <p class="subtitle">Relatório executivo com os principais gráficos dos sismogramas carregados, em layout limpo e com fundo branco.</p>
+      <p class="meta-line">${reportNote}</p>
+    </header>
+
+    <section class="summary">
+      ${kpis
+        .map(
+          (item) => `<div class="summary-card"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`
+        )
+        .join("")}
+    </section>
+
+    <section class="chart-block">
+      <div class="chart-heading">
+        <h2>Pressão sonora</h2>
+        <span>ABNT NBR 9653:2018</span>
+      </div>
+      ${pressureChart}
+    </section>
+
+    <section class="chart-block chart-break">
+      <div class="chart-heading">
+        <h2>Vibração em eventos sismográficos</h2>
+        <span>ABNT NBR 9653:2018</span>
+      </div>
+      ${vibrationNormChart}
+    </section>
+
+    <section class="chart-block chart-break">
+      <div class="chart-heading">
+        <h2>Vibração com eixos lineares partindo de zero</h2>
+        <span>ABNT NBR 9653:2018</span>
+      </div>
+      ${vibrationZeroChart}
+    </section>
+
+    <footer class="footer">
+      <span>OpenBlast</span>
+      <span>Relatório executivo simplificado</span>
+    </footer>
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => window.print(), 250);
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function getChartMarkup(containerId) {
+  const svg = $("#" + containerId + " svg");
+  if (!svg) return "";
+
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute("style");
+  clone.style.minWidth = "0";
+  clone.style.width = "100%";
+  clone.style.height = "auto";
+  return clone.outerHTML;
+}
+
+async function loadImageDataUrl(url) {
+  const response = await fetch(url, { cache: "force-cache" });
+  if (!response.ok) {
+    throw new Error(`Falha ao carregar a imagem ${url}`);
+  }
+
+  const blob = await response.blob();
+  return await blobToDataUrl(blob);
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Falha ao converter imagem"));
+    reader.readAsDataURL(blob);
+  });
 }
 
 function csvEscape(value) {
