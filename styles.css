@@ -1,16 +1,19 @@
 :root {
   --bg: #ffffff;
   --panel: #ffffff;
-  --ink: #171717;
-  --muted: #6b7280;
-  --line: #d9dde3;
+  --ink: #38424b;
+  --muted: #6c7680;
+  --muted-strong: #8b949e;
+  --line: #e3e6ea;
+  --line-strong: #d2d6db;
   --soft: #f5f6f7;
-  --accent: #c8102e;
-  --accent-dark: #8e0f24;
+  --accent: #e20613;
+  --accent-dark: #b8000b;
   --blue: #1f4ab8;
-  --green: #0d7a4f;
+  --green: #22c55e;
   --grid: #e3e6ea;
-  --axis: #20242b;
+  --axis: #38424b;
+  --focus-ring: 0 0 0 3px rgba(226, 6, 19, 0.5);
 }
 
 * {
@@ -50,7 +53,7 @@ strong {
   gap: 24px;
   align-items: start;
   padding-bottom: 20px;
-  border-bottom: 2px solid var(--axis);
+  border-bottom: 2px solid var(--line-strong);
 }
 
 .masthead-copy {
@@ -139,9 +142,9 @@ h2 {
 .dropzone {
   position: relative;
   min-height: 148px;
-  border: 1.5px dashed #bcc1c8;
+  border: 1.5px dashed var(--line-strong);
   border-radius: 6px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  background: var(--soft);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -150,11 +153,12 @@ h2 {
 
 .dropzone:hover {
   transform: translateY(-1px);
+  border-color: var(--accent);
 }
 
 .dropzone.dragover {
   border-color: var(--accent);
-  background: #fffdfd;
+  background: #ffffff;
 }
 
 .dropzone input {
@@ -191,17 +195,25 @@ button {
 
 button:hover {
   transform: translateY(-1px);
-  background: #fafafa;
+  border-color: var(--line-strong);
+}
+
+button:focus-visible,
+.primary:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(226, 6, 19, 0.5);
+  outline-offset: 1px;
 }
 
 button.primary {
-  background: var(--axis);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--axis);
+  border-color: var(--accent);
 }
 
 button.primary:hover {
-  background: #2b3139;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
 }
 
 button.secondary,
@@ -230,11 +242,12 @@ input {
   color: var(--ink);
   background: #fff;
   outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 input:focus {
-  border-color: #98a0aa;
-  box-shadow: 0 0 0 3px rgba(31, 74, 184, 0.12);
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
 }
 
 .status-panel {
@@ -331,7 +344,7 @@ th {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  background: #fafafa;
+  background: var(--soft);
 }
 
 td {
@@ -353,7 +366,7 @@ tbody tr:hover {
 }
 
 .status-check {
-  color: #946200;
+  color: var(--muted-strong);
   font-weight: 700;
 }
 

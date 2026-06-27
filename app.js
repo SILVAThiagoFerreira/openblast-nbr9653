@@ -3,14 +3,14 @@ const state = {
 };
 
 const COLORS = {
-  ink: "#20242b",
-  muted: "#6b7280",
+  ink: "#38424b",
+  muted: "#6c7680",
   grid: "#e3e6ea",
-  axis: "#20242b",
-  red: "#c8102e",
+  axis: "#38424b",
+  red: "#e20613",
   orange: "#c26a00",
   blue: "#1f4ab8",
-  green: "#0d7a4f"
+  green: "#22c55e"
 };
 
 const COMPONENTS = [
@@ -412,7 +412,7 @@ function setStatus(message, isError = false) {
   const panel = $("#statusPanel");
   panel.hidden = false;
   panel.innerHTML = message;
-  panel.style.borderColor = isError ? "#fecaca" : "";
+  panel.style.borderColor = isError ? "rgba(226, 6, 19, 0.35)" : "";
 }
 
 function drawPressureChart(events) {
@@ -1346,7 +1346,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #111827;
+      color: #38424b;
       font-family: Arial, Helvetica, sans-serif;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -1373,12 +1373,12 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     .header {
       padding: 0 0 7mm;
       margin-bottom: 6mm;
-      border-bottom: 1px solid #d9dde3;
+      border-bottom: 1px solid #e3e6ea;
     }
 
     .eyebrow {
       margin: 0 0 3mm;
-      color: #c8102e;
+      color: #e20613;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       font-size: 8pt;
@@ -1401,14 +1401,14 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     .subtitle {
       margin-top: 2.5mm;
       max-width: 152mm;
-      color: #6b7280;
+      color: #6c7680;
       font-size: 9.5pt;
       line-height: 1.45;
     }
 
     .meta-line {
       margin-top: 2.5mm;
-      color: #6b7280;
+      color: #6c7680;
       font-size: 8pt;
     }
 
@@ -1420,7 +1420,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     }
 
     .summary-card {
-      border: 1px solid #d9dde3;
+      border: 1px solid #e3e6ea;
       border-radius: 2.5mm;
       padding: 4mm 4.5mm;
       min-height: 22mm;
@@ -1428,7 +1428,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
 
     .summary-card span {
       display: block;
-      color: #6b7280;
+      color: #6c7680;
       font-size: 7.5pt;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -1445,7 +1445,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     }
 
     .chart-block {
-      border: 1px solid #d9dde3;
+      border: 1px solid #e3e6ea;
       border-radius: 2.5mm;
       padding: 4mm;
       margin-bottom: 6mm;
@@ -1474,7 +1474,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     }
 
     .chart-heading span {
-      color: #6b7280;
+      color: #6c7680;
       font-size: 8pt;
       white-space: nowrap;
     }
@@ -1497,8 +1497,8 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
       gap: 8mm;
       margin-top: 6mm;
       padding-top: 3mm;
-      border-top: 1px solid #d9dde3;
-      color: #6b7280;
+      border-top: 1px solid #e3e6ea;
+      color: #6c7680;
       font-size: 7.5pt;
     }
 
@@ -1525,7 +1525,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
     <header class="header">
       <p class="eyebrow">OpenBlast / ABNT NBR 9653:2018</p>
       <h1>${reportTitle}</h1>
-      <p class="subtitle">Relatório executivo com os principais gráficos dos sismogramas carregados, em layout limpo e com fundo branco.</p>
+      <p class="subtitle">Gráficos dos sismogramas carregados.</p>
       <p class="meta-line">${reportNote}</p>
     </header>
 
@@ -1563,7 +1563,7 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
 
     <footer class="footer">
       <span>OpenBlast</span>
-      <span>Relatório executivo simplificado</span>
+      <span>ABNT NBR 9653:2018</span>
     </footer>
   </div>
 
