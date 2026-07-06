@@ -1364,8 +1364,8 @@ function buildExecutiveReportHtml({ logoDataUrl }) {
       position: fixed;
       top: 12mm;
       right: 12mm;
-      width: 14mm;
-      height: 14mm;
+      width: 11mm;
+      height: 11mm;
       object-fit: contain;
       z-index: 2;
     }
