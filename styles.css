@@ -16,6 +16,12 @@
   --focus-ring: 0 0 0 3px rgba(226, 6, 19, 0.5);
 }
 
+/* OpenBlast shared header treatment */
+.masthead { border-top: 3px solid #ed1c24 !important; background: #fff !important; box-shadow: 0 1px 0 #e9ecef !important; }
+.masthead-copy { flex: 1; text-align: center !important; order: 2; }
+.masthead-side { order: 1; }
+.brand-logo { width: 112px !important; max-height: 38px; object-fit: contain; }
+
 * {
   box-sizing: border-box;
 }
